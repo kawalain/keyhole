@@ -11,7 +11,7 @@ still needs a real router, a real ISP path or a real service.
   header-case tricks passed in 1 of 3 runs. Needs a reliable transformation
   if HTTP-only blocked sites turn up.
 - **pf interception on OPNsense** ([0007](adr/0007-freebsd-interception.md)):
-  `rdr-to`, `DIOCNATLOOK` and the BPF filter are unverified. Needs the real
-  router or an OPNsense VM.
+  the plugin anchors, `DIOCNATLOOK` and the BPF filter are unverified. Needs
+  the OPNsense test VM (`vm/`).
 - **Resource budget** ([0006](adr/0006-language-rust.md)): no numbers yet.
   Needs a prototype measured on OPNsense.
