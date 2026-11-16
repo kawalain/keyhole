@@ -1,6 +1,6 @@
 # 0008. Classification is an evidence-driven state machine, not ML
 
-- Status: accepted
+- Status: accepted; the registrable-domain generalisation superseded by [0015](0015-verdicts-per-exact-name.md)
 - Date: 2026-11-17
 
 ## Context
