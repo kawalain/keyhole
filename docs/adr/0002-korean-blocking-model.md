@@ -21,7 +21,8 @@ using `womenhelp.org` (`199.58.81.252`) as the blocked domain.
 | KT (168.126.63.1), SKB (219.250.36.130) and LGU+ (164.124.101.2) resolvers, plain UDP, for the three SNI-blocked domains above | Real addresses, matching Cloudflare DoH; never the block-page address `121.189.57.82` |
 | Record-split ClientHellos 0.2 s to 12 s after a blocked one to the same server (`research/residual_probe.py`, three rounds) | All completed: no residual blocking |
 
-The measuring line is on KT (AS4766).
+The measuring line is on KT (AS4766). `docs/kt-filter.md` describes the
+filter in more detail (location, protocols, name matching, coverage).
 
 ## Decision
 

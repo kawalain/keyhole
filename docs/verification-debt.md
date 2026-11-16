@@ -3,10 +3,9 @@
 Behaviour that tests cannot reach yet. Each entry says what was seen and what
 still needs a real router, a real ISP path or a real service.
 
-- **Path-dependent SNI blocking** ([0002](adr/0002-korean-blocking-model.md)):
-  the blocked SNI passed to 1.1.1.1 and a Fastly address but failed to a
-  Cloudflare address and 8.8.8.8; the failure type was not captured. Needs a
-  repeat that records reset vs. timeout vs. TLS alert.
+- **Uneven inspection** (`docs/kt-filter.md`): which destinations the
+  filter inspects varied between runs on one KT line. Not measured on other
+  KT lines, SK Broadband or LG U+.
 - **Plain-HTTP keep-alive** ([0011](adr/0011-http-decoy-request.md)): only
   the first request on a proxied connection gets the decoy. Not seen with a
   real browser; needs a browser session against a blocked HTTP-only site.
