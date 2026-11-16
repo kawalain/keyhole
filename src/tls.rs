@@ -45,6 +45,16 @@ pub fn parse_client_hello(buf: &[u8]) -> Hello {
     Hello::Complete { len, sni }
 }
 
+/// Finds the server name in the first segment of a ClientHello, which may
+/// end anywhere: a name beyond the end of `segment` is not found.
+pub fn sni_in_prefix(segment: &[u8]) -> Option<&[u8]> {
+    if segment.first() != Some(&HANDSHAKE) || segment.get(5) != Some(&CLIENT_HELLO) {
+        return None;
+    }
+    let range = find_sni(&segment[5..])?;
+    segment.get(range.start + 5..range.end + 5)
+}
+
 /// Finds the host name in a ClientHello handshake message. The message may
 /// be cut off at the record boundary; a name beyond it is not found.
 fn find_sni(handshake: &[u8]) -> Option<Range<usize>> {
@@ -220,6 +230,14 @@ mod tests {
                 "{cut}"
             );
         }
+    }
+
+    #[test]
+    fn finds_the_name_in_a_first_segment_only_when_it_is_there() {
+        assert_eq!(sni_in_prefix(&OPENSSL[..1460]), Some(&b"womenhelp.org"[..]));
+        assert_eq!(sni_in_prefix(&CHROMIUM[..1460]), None);
+        assert_eq!(sni_in_prefix(CHROMIUM), Some(&b"womenhelp.org"[..]));
+        assert_eq!(sni_in_prefix(b"GET / HTTP/1.1"), None);
     }
 
     #[test]
