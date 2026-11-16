@@ -109,7 +109,12 @@ impl<T: Table> Engine<T> {
             Signal::HttpBlock { server, host } => (server, host, true),
         };
         let candidates = match name {
-            Some(domain) => vec![domain],
+            Some(domain) => {
+                // The client may have resolved the name before keyhole saw it
+                // (Unbound's cache): remember the address the reset came from.
+                self.remember(&domain, server, now + self.config.grace, now);
+                vec![domain]
+            }
             None => self.domains_at(server, now),
         };
         let mut actions = Vec::new();
@@ -363,9 +368,9 @@ mod tests {
         );
         e.outcome(blocked("womenhelp.org"), t0);
         e.answer(&answer("womenhelp.org", &["203.0.113.7"], 60), t0);
-        assert_eq!(e.table.addrs, [ip("203.0.113.7")]);
+        assert_eq!(e.table.addrs, [ip("199.58.81.252"), ip("203.0.113.7")]);
         e.answer(&answer("example.com", &["203.0.113.8"], 60), t0);
-        assert_eq!(e.table.addrs, [ip("203.0.113.7")]);
+        assert!(!e.table.addrs.contains(&ip("203.0.113.8")));
     }
 
     #[test]
@@ -399,9 +404,12 @@ mod tests {
         );
         e.outcome(blocked("womenhelp.org"), t0);
         e.answer(&answer("womenhelp.org", &["203.0.113.7"], 60), t0);
-        let expiry = t0 + Duration::from_secs(60 + 600);
-        assert_eq!(e.next_wakeup(), Some(expiry));
-        e.tick(expiry);
+        // The reset address expires after the grace period, the answer's
+        // after its TTL plus the grace period.
+        assert_eq!(e.next_wakeup(), Some(t0 + Duration::from_secs(600)));
+        e.tick(t0 + Duration::from_secs(600));
+        assert_eq!(e.table.addrs, [ip("203.0.113.7")]);
+        e.tick(t0 + Duration::from_secs(60 + 600));
         assert!(e.table.addrs.is_empty());
 
         e.answer(&answer("womenhelp.org", &["203.0.113.7"], 60), t0);
@@ -445,7 +453,23 @@ mod tests {
             t0,
         );
         assert!(probes.is_empty());
-        assert_eq!(e.table.addrs, [ip("198.51.100.9")]);
+        assert!(e.table.addrs.contains(&ip("198.51.100.9")));
+    }
+
+    #[test]
+    fn a_block_seen_without_its_dns_answer_still_bypasses_the_reset_address() {
+        // Unbound answered from its cache, so the engine never saw the name.
+        let t0 = Instant::now();
+        let mut e = engine();
+        e.signal(
+            Signal::TlsReset {
+                server: ip("199.58.81.252"),
+                sni: Some(d("womenhelp.org")),
+            },
+            t0,
+        );
+        e.outcome(blocked("womenhelp.org"), t0);
+        assert_eq!(e.table.addrs, [ip("199.58.81.252")]);
     }
 
     #[test]
