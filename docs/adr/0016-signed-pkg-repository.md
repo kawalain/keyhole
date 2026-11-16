@@ -1,6 +1,6 @@
 # 0016. Distribution: a signed pkg repository on the `pkg` branch
 
-- Status: proposed
+- Status: accepted (seen on the OPNsense test VM)
 - Date: 2026-11-17
 
 ## Context
@@ -29,6 +29,13 @@ accepts extra pkg repositories under `/usr/local/etc/pkg/repos/`.
 Mark accepted once the OPNsense test VM, with nothing installed by hand,
 installs `os-keyhole` from the published branch with signature checking,
 runs keyhole from the settings page, and removes it with DNS still working.
+
+Seen on 2026-11-17 in the test VM after removing every hand-installed
+file: following `docs/install.md`, pkg installed `os-keyhole` 0.1.0 from
+the `pkg` branch; with a different public key in place, `pkg update`
+refused the repository. The installed keyhole bypassed a blocked site over
+HTTPS and HTTP. `pkg delete` stopped it, removed the anchor and the Unbound
+forward, and LAN clients kept resolving names.
 
 ## Consequences
 

@@ -19,9 +19,10 @@ still needs a real router, a real ISP path or a real service.
 - **Reaction time**: in the test VM a block was detected, probed and
   bypassed about 1.1 s after the first reset; a connection started in that
   second was still reset. Not measured on the real router.
-- **Plugin package** ([0012](adr/0012-opnsense-plugin.md)): the plugin was
-  only installed by copying files. Needs a package build in the
-  `opnsense/plugins` tree and an install on the real router.
+- **Package on the real router** ([0016](adr/0016-signed-pkg-repository.md)):
+  install, upgrade and removal from the `pkg` branch were seen in the test
+  VM only; an upgrade between two versions was not tried yet. Needs the
+  real router and a second release.
 - **Scheduled blocklist updates** ([0013](adr/0013-filtering-with-unbound-dnsbl.md)):
   the blocklist was applied by hand in the test VM; a cron job running
   "Update Unbound DNSBLs" was not seen to run. Needs a scheduled run checked
