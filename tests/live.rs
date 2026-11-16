@@ -96,3 +96,48 @@ fn forwarder_relays_to_the_isp_resolver_and_reports_addresses() {
     assert_eq!(answer.addrs, [resolve("womenhelp.org")]);
     assert!(n > query.len());
 }
+
+#[test]
+#[ignore = "needs a Korean ISP connection and curl"]
+fn curl_reaches_blocked_plain_http_through_the_proxy() {
+    let upstream = (resolve("womenhelp.org"), 80).into();
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        keyhole::proxy::serve(listener, move |_| Ok(upstream), Default::default())
+    });
+    let out = std::process::Command::new("curl")
+        .args([
+            "-sS",
+            "-o",
+            "/dev/null",
+            "-w",
+            "%{http_code} %{redirect_url}",
+        ])
+        .args(["--max-time", "15", "-H", "Host: womenhelp.org"])
+        .arg(format!("http://127.0.0.1:{port}/"))
+        .output()
+        .unwrap();
+    let result = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(result, "301 https://womenhelp.org/");
+}
+
+#[test]
+#[ignore = "needs a Korean ISP connection"]
+fn http_blocked_domain_is_bypassed_by_the_decoy() {
+    let domain = Domain::parse("womenhelp.org").unwrap();
+    assert_eq!(
+        prober().http(&domain, resolve("womenhelp.org")),
+        Verdict::Blocked(Some(Strategy::HttpDecoy))
+    );
+    let open = Domain::parse("www.rust-lang.org").unwrap();
+    assert_eq!(
+        prober().http(&open, resolve("www.rust-lang.org")),
+        Verdict::NotBlocked
+    );
+}

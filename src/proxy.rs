@@ -1,9 +1,10 @@
-//! Transparent TCP proxy for bypassed connections (ADR 0003).
+//! Transparent TCP proxy for bypassed connections (ADR 0003, 0011).
 //!
 //! Only connections the enforcer redirects reach the proxy. It reads the
-//! client's ClientHello, splits it into two TLS records inside the host name,
-//! sends it to the original destination and then relays bytes both ways.
-//! Anything that is not a ClientHello is relayed unchanged.
+//! client's first flight and rewrites it for the censor: a ClientHello is
+//! split into two TLS records inside the host name; a plain-HTTP request
+//! gets a decoy `HEAD` in front, whose response the proxy drops. Then it
+//! relays bytes both ways. Anything else is relayed unchanged.
 
 use std::io::{self, Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
@@ -12,6 +13,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
+use crate::http::{self, DecoyResponse};
 use crate::tls::{self, Hello};
 
 /// Largest first flight the proxy buffers: one maximum-size TLS record.
@@ -76,7 +78,13 @@ where
 /// Proxies one client connection to `upstream` until both sides close.
 pub fn handle(mut client: TcpStream, upstream: SocketAddr, config: &Config) -> io::Result<()> {
     let flight = read_first_flight(&mut client, config.first_flight_timeout)?;
-    let flight = tls::split_in_sni(&flight).unwrap_or(flight);
+    let (flight, decoy) = if http::is_request(&flight) {
+        let mut rewritten = http::decoy(upstream.ip());
+        rewritten.extend_from_slice(&flight);
+        (rewritten, Some(DecoyResponse::default()))
+    } else {
+        (tls::split_in_sni(&flight).unwrap_or(flight), None)
+    };
 
     let mut server = TcpStream::connect_timeout(&upstream, config.connect_timeout)?;
     server.set_nodelay(true)?;
@@ -87,7 +95,10 @@ pub fn handle(mut client: TcpStream, upstream: SocketAddr, config: &Config) -> i
     let upload = thread::Builder::new()
         .stack_size(THREAD_STACK)
         .spawn(move || pipe(&mut client_r, &mut server_w))?;
-    pipe(&mut server, &mut client);
+    match decoy {
+        Some(decoy) => pipe_after_decoy(&mut server, &mut client, decoy),
+        None => pipe(&mut server, &mut client),
+    }
     let _ = upload.join();
     Ok(())
 }
@@ -122,6 +133,27 @@ fn read_first_flight(client: &mut TcpStream, timeout: Duration) -> io::Result<Ve
 /// other direction can finish.
 fn pipe(from: &mut TcpStream, to: &mut TcpStream) {
     let _ = io::copy(from, to);
+    let _ = to.shutdown(Shutdown::Write);
+}
+
+/// Like [`pipe`], but drops the decoy's response from the front.
+fn pipe_after_decoy(from: &mut TcpStream, to: &mut TcpStream, mut decoy: DecoyResponse) {
+    let mut buf = [0; 8192];
+    loop {
+        match from.read(&mut buf) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => {
+                let rest = decoy.strip(&buf[..n]);
+                if to.write_all(rest).is_err() {
+                    break;
+                }
+                if decoy.is_done() {
+                    let _ = io::copy(from, to);
+                    break;
+                }
+            }
+        }
+    }
     let _ = to.shutdown(Shutdown::Write);
 }
 
@@ -185,11 +217,24 @@ mod tests {
 
     #[test]
     fn other_protocols_pass_through_unchanged() {
-        let (dst, server) = upstream(b"HTTP/1.1 200 OK\r\n\r\n");
+        let (dst, server) = upstream(b"SSH-2.0-server\r\n");
         let p = proxy(dst, Config::default());
-        let reply = client_exchange(p, &[b"GET / HTTP/1.1\r\n\r\n"]);
-        assert_eq!(reply, b"HTTP/1.1 200 OK\r\n\r\n");
-        assert_eq!(server.join().unwrap(), b"GET / HTTP/1.1\r\n\r\n");
+        let reply = client_exchange(p, &[b"SSH-2.0-client\r\n"]);
+        assert_eq!(reply, b"SSH-2.0-server\r\n");
+        assert_eq!(server.join().unwrap(), b"SSH-2.0-client\r\n");
+    }
+
+    #[test]
+    fn http_request_gets_a_decoy_whose_response_is_dropped() {
+        let (dst, server) =
+            upstream(b"HTTP/1.1 301 Moved\r\nContent-Length: 5\r\n\r\nHTTP/1.1 200 OK\r\n\r\nhi");
+        let p = proxy(dst, Config::default());
+        let request: &[u8] = b"GET / HTTP/1.1\r\nHost: womenhelp.org\r\n\r\n";
+        let reply = client_exchange(p, &[request]);
+        assert_eq!(reply, b"HTTP/1.1 200 OK\r\n\r\nhi");
+        let mut expected = http::decoy(dst.ip());
+        expected.extend_from_slice(request);
+        assert_eq!(server.join().unwrap(), expected);
     }
 
     #[test]

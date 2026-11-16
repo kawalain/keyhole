@@ -1,6 +1,6 @@
 # 0003. Bypass: TLS record fragmentation in a transparent proxy
 
-- Status: accepted for TLS (measured); HTTP bypass remains open
+- Status: accepted for TLS (measured); plain HTTP superseded by [0011](0011-http-decoy-request.md)
 - Date: 2026-11-17
 
 ## Context

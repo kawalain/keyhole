@@ -12,11 +12,14 @@ use std::time::{Duration, Instant};
 
 use crate::domain::Domain;
 
-/// A way around a block (ADR 0003).
+/// A way around a block (ADR 0003, 0011). Every bypassed address gets
+/// both, by protocol; the strategy records which probe found the block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Strategy {
     /// Split the ClientHello into two TLS records inside the SNI.
     TlsRecordSplit,
+    /// Put a decoy request ahead of plain-HTTP requests (ADR 0011).
+    HttpDecoy,
 }
 
 /// Something observed passively that suggests a block. Evidence only ever

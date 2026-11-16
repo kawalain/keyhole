@@ -13,8 +13,8 @@ pub use freebsd::NatLook;
 const ANCHOR: &str = "keyhole";
 
 /// The rules keyhole loads into its anchor: connections from the LAN to
-/// table addresses on TCP 443 go to the proxy, and QUIC to them is refused
-/// so clients fall back to TCP (ADR 0003).
+/// table addresses on TCP 443 and 80 go to the proxy, and QUIC to them is
+/// refused so clients fall back to TCP (ADR 0003, 0011).
 pub fn anchor_rules(lan: &str, proxy: SocketAddr) -> io::Result<String> {
     let valid = !lan.is_empty()
         && lan.len() < 16
@@ -26,7 +26,7 @@ pub fn anchor_rules(lan: &str, proxy: SocketAddr) -> io::Result<String> {
     }
     Ok(format!(
         "table <keyhole> persist\n\
-         rdr pass on {lan} inet proto tcp from any to <keyhole> port 443 -> {} port {}\n\
+         rdr pass on {lan} inet proto tcp from any to <keyhole> port {{ 80 443 }} -> {} port {}\n\
          block return in quick on {lan} inet proto udp from any to <keyhole> port 443\n",
         proxy.ip(),
         proxy.port()
@@ -199,12 +199,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn anchor_rules_redirect_tls_and_refuse_quic_on_the_lan() {
+    fn anchor_rules_redirect_tls_and_http_and_refuse_quic_on_the_lan() {
         let rules = anchor_rules("vtnet0", "127.0.0.1:8443".parse().unwrap()).unwrap();
         assert_eq!(
             rules,
             "table <keyhole> persist\n\
-             rdr pass on vtnet0 inet proto tcp from any to <keyhole> port 443 -> 127.0.0.1 port 8443\n\
+             rdr pass on vtnet0 inet proto tcp from any to <keyhole> port { 80 443 } -> 127.0.0.1 port 8443\n\
              block return in quick on vtnet0 inet proto udp from any to <keyhole> port 443\n"
         );
     }

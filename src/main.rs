@@ -217,7 +217,7 @@ mod daemon {
         let spawned = spawn("probe", move || {
             let addr = probe.addr.or_else(|| resolve(&probe.domain));
             let verdict = match addr {
-                Some(addr) => prober.tls(&probe.domain, addr),
+                Some(addr) => prober.probe(&probe.domain, addr),
                 None => Verdict::Inconclusive,
             };
             slot.fetch_sub(1, Ordering::Relaxed);

@@ -6,12 +6,12 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::{Duration, Instant};
 
 use crate::domain::Domain;
+use crate::http::BLOCK_PAGE_HOST as BLOCK_PAGE;
 use crate::tls;
 
 const TLS_PORT: u16 = 443;
 const HTTP_PORT: u16 = 80;
 const RST: u8 = 0x04;
-const BLOCK_PAGE: &[u8] = b"warning.or.kr";
 
 /// A connection that ended the way a censor ends it.
 #[derive(Clone, Debug, PartialEq, Eq)]
