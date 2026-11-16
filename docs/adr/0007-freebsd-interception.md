@@ -1,6 +1,6 @@
 # 0007. Interception on FreeBSD: BPF observation, pf anchor and rdr
 
-- Status: proposed
+- Status: accepted (measured on the OPNsense test VM)
 - Date: 2026-11-17
 
 ## Context
@@ -32,10 +32,8 @@ Seen on an OPNsense 26.7 test VM (FreeBSD 15.1-RELEASE-p1), 2026-11-17:
 
 ## Decision
 
-- Observation: read `/dev/bpf` with a kernel BPF filter that passes only
-  outbound TLS ClientHello segments (first payload byte `0x16`), inbound
-  resets from port 443, and the first inbound payload from port 80.
-  No libpcap.
+- Observation: read `/dev/bpf` with a kernel BPF filter (`src/bpf.rs`;
+  what it passes is refined in ADR 0010). No libpcap.
 - Integration: keyhole ships `plugins.inc.d/keyhole.inc`, which registers an
   `rdr` anchor and a `fw` anchor named `keyhole`, both at the head and quick.
   keyhole loads its own rules into that anchor; the generated ruleset is
@@ -56,4 +54,6 @@ Mark accepted once verified on the OPNsense test VM:
   reload~~ (seen 2026-11-17),
 - ~~`DIOCNATLOOK` returns the original destination for redirected LAN
   traffic~~ (seen 2026-11-17, `tests/vm.rs`),
-- the BPF filter matches the intended packets and nothing else.
+- ~~the BPF filter matches the intended packets and nothing else~~ (seen
+  2026-11-17: 2 frames for a blocked request, which the observer turned
+  into the right signal; 3 frames during a 70 MB HTTPS download).

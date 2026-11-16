@@ -2,6 +2,7 @@
 //!
 //! See `docs/adr/` for the architecture.
 
+pub mod bpf;
 pub mod classifier;
 pub mod dns;
 pub mod domain;

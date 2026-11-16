@@ -10,8 +10,9 @@ still needs a real router, a real ISP path or a real service.
 - **Plain-HTTP bypass** ([0003](adr/0003-bypass-tls-record-fragmentation.md)):
   header-case tricks passed in 1 of 3 runs. Needs a reliable transformation
   if HTTP-only blocked sites turn up.
-- **pf interception on OPNsense** ([0007](adr/0007-freebsd-interception.md)):
-  the BPF filter is unverified. Needs
-  the OPNsense test VM (`vm/`).
+- **QEMU in front of the WAN** ([0007](adr/0007-freebsd-interception.md)):
+  the test VM's WAN is QEMU user-mode NAT, which terminates TCP itself. pf,
+  BPF and the bypass were seen working there, but not on a router whose WAN
+  faces the ISP directly. Needs the real router.
 - **Resource budget** ([0006](adr/0006-language-rust.md)): no numbers yet.
   Needs a prototype measured on OPNsense.
