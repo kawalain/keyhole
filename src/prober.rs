@@ -33,7 +33,7 @@ pub trait Dialer {
     fn attempt(&self, addr: SocketAddr, first_flight: &[u8]) -> Attempt;
 }
 
-/// Bypass strategies for the TLS layer, in the order they are tried.
+/// Bypass strategies, in the order they are tried.
 const TLS_STRATEGIES: [Strategy; 1] = [Strategy::TlsRecordSplit];
 
 pub struct Prober<D> {
@@ -61,7 +61,6 @@ impl<D: Dialer> Prober<D> {
         for strategy in TLS_STRATEGIES {
             let flight = match strategy {
                 Strategy::TlsRecordSplit => tls::split_in_sni(&real()),
-                Strategy::EncryptedResolver => None,
             };
             if flight.is_some_and(|f| self.dialer.attempt(addr, &f) == Attempt::Reached) {
                 // Rule out a transient failure of the first real attempt.

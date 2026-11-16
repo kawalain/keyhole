@@ -5,9 +5,6 @@
 //! operating system. Callers feed it [`Evidence`] and [`Outcome`]s with the
 //! current time, carry out the returned [`Action`]s, and call
 //! [`Classifier::tick`] at [`Classifier::next_wakeup`].
-//!
-//! Each `(domain, layer)` pair is classified independently: a domain can be
-//! blocked by SNI, by DNS, or both.
 
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -15,31 +12,11 @@ use std::time::{Duration, Instant};
 
 use crate::domain::Domain;
 
-/// Where a block is applied, and therefore where it is bypassed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Layer {
-    /// SNI or HTTP `Host` filtering on the connection.
-    Tls,
-    /// Tampered answers from the ISP resolver.
-    Dns,
-}
-
-/// A way around a block (ADR 0003, 0005).
+/// A way around a block (ADR 0003).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Strategy {
     /// Split the ClientHello into two TLS records inside the SNI.
     TlsRecordSplit,
-    /// Resolve the domain through the encrypted resolver.
-    EncryptedResolver,
-}
-
-impl Strategy {
-    pub fn layer(self) -> Layer {
-        match self {
-            Strategy::TlsRecordSplit => Layer::Tls,
-            Strategy::EncryptedResolver => Layer::Dns,
-        }
-    }
 }
 
 /// Something observed passively that suggests a block. Evidence only ever
@@ -50,19 +27,6 @@ pub enum Evidence {
     SniReset { domain: Domain, addr: IpAddr },
     /// A plain-HTTP response redirected to the block page.
     HttpBlockRedirect { domain: Domain, addr: IpAddr },
-    /// The ISP resolver answered NXDOMAIN or with a known block-page address.
-    SuspiciousDnsAnswer { domain: Domain },
-}
-
-impl Evidence {
-    fn key(&self) -> (&Domain, Layer, Option<IpAddr>) {
-        match self {
-            Evidence::SniReset { domain, addr } | Evidence::HttpBlockRedirect { domain, addr } => {
-                (domain, Layer::Tls, Some(*addr))
-            }
-            Evidence::SuspiciousDnsAnswer { domain } => (domain, Layer::Dns, None),
-        }
-    }
 }
 
 /// What a probe concluded.
@@ -81,19 +45,17 @@ pub enum Verdict {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Outcome {
     pub domain: Domain,
-    pub layer: Layer,
     pub verdict: Verdict,
 }
 
 /// Work the caller must carry out.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Action {
-    /// Probe `domain` on `layer` and report back with [`Classifier::record`].
+    /// Probe `domain` and report back with [`Classifier::record`].
     /// `addr` is the address the evidence was seen on; `None` means the
     /// prober resolves the domain itself.
     Probe {
         domain: Domain,
-        layer: Layer,
         addr: Option<IpAddr>,
     },
     /// Start bypassing `domain` with `strategy`.
@@ -115,8 +77,8 @@ pub struct Config {
     /// every confirmation up to `verify_max`.
     pub verify_initial: Duration,
     pub verify_max: Duration,
-    /// Upper bound on tracked `(domain, layer)` pairs; evidence for new
-    /// pairs beyond it is dropped.
+    /// Upper bound on tracked domains; evidence for new domains beyond it
+    /// is dropped.
     pub max_entries: usize,
 }
 
@@ -160,7 +122,7 @@ struct Entry {
 
 pub struct Classifier {
     config: Config,
-    entries: HashMap<(Domain, Layer), Entry>,
+    entries: HashMap<Domain, Entry>,
 }
 
 impl Classifier {
@@ -171,20 +133,20 @@ impl Classifier {
         }
     }
 
-    /// Feeds passive evidence. Evidence for a pair that is already being
+    /// Feeds passive evidence. Evidence for a domain that is already being
     /// probed, known to be blocked, or recently cleared is ignored.
     ///
     /// A reset on a domain that is already bypassed usually means the client
     /// reached an address the bypass does not cover yet (for example through
     /// its own DoH); the caller handles that with [`Classifier::strategy`].
     pub fn observe(&mut self, evidence: Evidence, now: Instant) -> Vec<Action> {
-        let (domain, layer, addr) = evidence.key();
-        let key = (domain.clone(), layer);
-        if self.entries.contains_key(&key) || self.entries.len() >= self.config.max_entries {
+        let (Evidence::SniReset { domain, addr } | Evidence::HttpBlockRedirect { domain, addr }) =
+            evidence;
+        if self.entries.contains_key(&domain) || self.entries.len() >= self.config.max_entries {
             return Vec::new();
         }
         self.entries.insert(
-            key,
+            domain.clone(),
             Entry {
                 blocked: false,
                 strategy: None,
@@ -195,23 +157,21 @@ impl Classifier {
             },
         );
         vec![Action::Probe {
-            domain: domain.clone(),
-            layer,
-            addr,
+            domain,
+            addr: Some(addr),
         }]
     }
 
     /// Feeds the outcome of a requested probe. Outcomes nobody is waiting
     /// for (late, duplicated) are ignored.
     pub fn record(&mut self, outcome: Outcome, now: Instant) -> Vec<Action> {
-        let key = (outcome.domain, outcome.layer);
         let mut actions = Vec::new();
-        if let Some(entry) = self.entries.get_mut(&key)
+        if let Some(entry) = self.entries.get_mut(&outcome.domain)
             && matches!(entry.phase, Phase::Probing { .. })
         {
             Self::settle(
                 &self.config,
-                &key.0,
+                &outcome.domain,
                 entry,
                 outcome.verdict,
                 now,
@@ -225,7 +185,7 @@ impl Classifier {
     pub fn tick(&mut self, now: Instant) -> Vec<Action> {
         let mut actions = Vec::new();
         let config = &self.config;
-        self.entries.retain(|(domain, layer), entry| {
+        self.entries.retain(|domain, entry| {
             if entry.phase.at() > now {
                 return true;
             }
@@ -247,7 +207,6 @@ impl Classifier {
                     };
                     actions.push(Action::Probe {
                         domain: domain.clone(),
-                        layer: *layer,
                         addr: None,
                     });
                     true
@@ -263,11 +222,9 @@ impl Classifier {
         self.entries.values().map(|e| e.phase.at()).min()
     }
 
-    /// The bypass currently applied to `domain` on `layer`.
-    pub fn strategy(&self, domain: &Domain, layer: Layer) -> Option<Strategy> {
-        self.entries
-            .get(&(domain.clone(), layer))
-            .and_then(|e| e.strategy)
+    /// The bypass currently applied to `domain`.
+    pub fn strategy(&self, domain: &Domain) -> Option<Strategy> {
+        self.entries.get(domain).and_then(|e| e.strategy)
     }
 
     fn settle(
@@ -345,7 +302,6 @@ mod tests {
     fn probe(name: &str, addr: Option<IpAddr>) -> Action {
         Action::Probe {
             domain: d(name),
-            layer: Layer::Tls,
             addr,
         }
     }
@@ -353,7 +309,6 @@ mod tests {
     fn outcome(name: &str, verdict: Verdict) -> Outcome {
         Outcome {
             domain: d(name),
-            layer: Layer::Tls,
             verdict,
         }
     }
@@ -377,29 +332,19 @@ mod tests {
             [probe("womenhelp.org", Some(ADDR))]
         );
         assert_eq!(c.observe(reset("womenhelp.org"), t0 + secs(1)), []);
-        assert_eq!(c.strategy(&d("womenhelp.org"), Layer::Tls), None);
+        assert_eq!(c.strategy(&d("womenhelp.org")), None);
     }
 
     #[test]
-    fn http_redirect_is_tls_layer_evidence_and_dns_is_independent() {
+    fn http_redirect_is_evidence_like_a_reset() {
         let t0 = Instant::now();
-        let mut c = bypassed(t0);
+        let mut c = Classifier::new(cfg());
         let http = Evidence::HttpBlockRedirect {
             domain: d("womenhelp.org"),
             addr: ADDR,
         };
-        assert_eq!(c.observe(http, t0), []);
-        let dns = Evidence::SuspiciousDnsAnswer {
-            domain: d("womenhelp.org"),
-        };
-        assert_eq!(
-            c.observe(dns, t0),
-            [Action::Probe {
-                domain: d("womenhelp.org"),
-                layer: Layer::Dns,
-                addr: None,
-            }]
-        );
+        assert_eq!(c.observe(http, t0), [probe("womenhelp.org", Some(ADDR))]);
+        assert_eq!(c.observe(reset("womenhelp.org"), t0), []);
     }
 
     #[test]
@@ -415,7 +360,7 @@ mod tests {
             }]
         );
         assert_eq!(
-            c.strategy(&d("womenhelp.org"), Layer::Tls),
+            c.strategy(&d("womenhelp.org")),
             Some(Strategy::TlsRecordSplit)
         );
     }
@@ -462,7 +407,7 @@ mod tests {
             t += secs(interval);
             assert_eq!(c.tick(t), [probe("womenhelp.org", None)]);
             assert_eq!(
-                c.strategy(&d("womenhelp.org"), Layer::Tls),
+                c.strategy(&d("womenhelp.org")),
                 Some(Strategy::TlsRecordSplit),
                 "the bypass stays on while it is re-verified"
             );
@@ -483,7 +428,7 @@ mod tests {
                 strategy: Strategy::TlsRecordSplit,
             }]
         );
-        assert_eq!(c.strategy(&d("womenhelp.org"), Layer::Tls), None);
+        assert_eq!(c.strategy(&d("womenhelp.org")), None);
     }
 
     #[test]
@@ -497,7 +442,7 @@ mod tests {
             []
         );
         assert_eq!(
-            c.strategy(&d("womenhelp.org"), Layer::Tls),
+            c.strategy(&d("womenhelp.org")),
             Some(Strategy::TlsRecordSplit)
         );
         assert_eq!(c.next_wakeup(), Some(t + secs(60)));
@@ -523,7 +468,7 @@ mod tests {
         let t0 = Instant::now();
         let mut c = Classifier::new(cfg());
         assert_eq!(c.record(outcome("womenhelp.org", SPLIT), t0), []);
-        assert_eq!(c.strategy(&d("womenhelp.org"), Layer::Tls), None);
+        assert_eq!(c.strategy(&d("womenhelp.org")), None);
 
         let mut c = bypassed(t0);
         assert_eq!(
