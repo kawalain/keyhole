@@ -13,9 +13,9 @@ the domains that need it. It is the final DNS upstream behind Unbound.
 
 ## Commands
 
-- `cargo test`: unit tests; no network, clock or OS access.
+- `cargo test`: unit tests; loopback sockets only, no external network.
 - `cargo test -- --ignored`: live probes against the real network
-  (`tests/live.rs`); they need a Korean ISP connection.
+  (`tests/live.rs`); they need a Korean ISP connection and `curl`.
 - `cargo clippy --all-targets -- -D warnings` and `cargo fmt` before
   committing.
 
