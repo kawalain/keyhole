@@ -19,6 +19,10 @@ a LAN host behind the target router.
 | HTTP, unchanged / lower-case `host:` / trailing-dot host / TCP split | 0/3 |
 | HTTP, `HoSt:` mixed case or `Host:` without space | 1/3 |
 
+A later check on `pornhub.com` and `xvideos.com` gave the same picture:
+reset when unchanged, handshake completes with the record split. The Rust
+prober and proxy reproduce the result (`tests/live.rs`).
+
 The DPI reassembles TCP segments but does not reassemble TLS records. HTTP
 header tricks are unreliable, which also hints that more than one DPI box with
 different parsers sits on the path.

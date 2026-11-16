@@ -17,6 +17,10 @@ using `womenhelp.org` (`199.58.81.252`) as the blocked domain.
 | HTTP to the real IP, `Host: example.com` | Normal `301` from the origin |
 | System resolver answer vs. Cloudflare DoH | Identical (`199.58.81.252`) |
 | TLS with SNI `womenhelp.org` to unrelated IPs | 1.1.1.1 and a Fastly IP completed the handshake; a Cloudflare IP and 8.8.8.8 failed (failure type not captured) |
+| TLS to `pornhub.com`, `xvideos.com` on their real IPs | TCP reset right after ClientHello |
+| KT (168.126.63.1), SKB (219.250.36.130) and LGU+ (164.124.101.2) resolvers, plain UDP, for the three SNI-blocked domains above | Real addresses, matching Cloudflare DoH; never the block-page address `121.189.57.82` |
+
+The measuring line is on KT (AS4766).
 
 ## Decision
 
@@ -36,5 +40,6 @@ on the same IP), never by passive evidence alone.
 - The IP is not blocked, so the bypass can keep the original destination.
 - Blocking may depend on the network path (the mixed results against
   unrelated IPs), so verdicts expire and are re-verified.
-- DNS tampering by the ISP resolver was not measured: the measuring host used
-  its own encrypted resolver. See `docs/verification-debt.md`.
+- No ISP resolver tampered with answers for SNI-blocked domains. Korean
+  blocking is currently done on SNI and `Host`, not in DNS; the `DnsBlocked`
+  signature is kept only as a guard against a policy change.
