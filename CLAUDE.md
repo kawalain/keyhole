@@ -47,6 +47,17 @@ the real ISP DPI applies; its LAN is a private link to the client VM.
    the cross-built test executable over and run it with `--ignored` while
    the client connects.
 
+## Releases
+
+1. Bump the version (SemVer, major 0) in `Cargo.toml` and
+   `opnsense/Makefile`.
+2. Cross-build, then `vm/build-pkg.sh <dir>` builds and signs the pkg
+   repository in the router VM. The signing key stays outside the
+   repository (`KEYHOLE_PKG_KEY`, default `~/.config/keyhole/`); never
+   commit it.
+3. Replace the contents of the orphan `pkg` branch with `<dir>` and push it
+   (ADR 0016).
+
 These VMs are test fixtures, not the user's router: changing them needs no
 separate request.
 

@@ -1,0 +1,2 @@
+# keyhole: stop the daemon; its rc.d script also flushes the pf anchor.
+if [ -f /usr/local/etc/rc.d/keyhole ]; then /usr/local/etc/rc.d/keyhole onestop >/dev/null 2>&1 || true; fi

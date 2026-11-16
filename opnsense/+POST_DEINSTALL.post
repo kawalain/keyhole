@@ -1,0 +1,4 @@
+# keyhole: remove the generated files, above all the Unbound forward to a
+# daemon that is gone, which would otherwise break DNS for the whole LAN.
+rm -f /usr/local/etc/unbound.opnsense.d/keyhole.conf /var/unbound/etc/keyhole.conf /etc/rc.conf.d/keyhole
+if [ -f /usr/local/sbin/configctl ]; then /usr/local/sbin/configctl filter reload >/dev/null; /usr/local/sbin/configctl unbound restart >/dev/null; fi

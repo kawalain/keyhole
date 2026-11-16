@@ -1,0 +1,4 @@
+# keyhole: start again when enabled, and let pf and Unbound pick up the
+# plugin's anchor and forward.
+if [ -f /usr/local/etc/rc.d/keyhole ]; then /usr/local/etc/rc.d/keyhole start >/dev/null 2>&1 || true; fi
+if [ -f /usr/local/sbin/configctl ]; then /usr/local/sbin/configctl filter reload >/dev/null; /usr/local/sbin/configctl unbound restart >/dev/null; fi
