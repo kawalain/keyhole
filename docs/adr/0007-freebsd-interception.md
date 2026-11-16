@@ -18,6 +18,11 @@ Seen on an OPNsense 26.7 test VM (FreeBSD 15.1-RELEASE-p1), 2026-11-17:
   (`OPNsense/Firewall/Plugin.php:223`). `filter.inc:407-413` emits
   `nat`/`binat`/`rdr` anchors around the NAT rules and `fw` anchors before
   and after the filter rules.
+- With `opnsense/keyhole.inc` installed, `configctl filter reload` emits
+  `rdr-anchor "keyhole"` and `anchor "keyhole" quick` (pf rejects `quick`
+  on translation anchors). Rules and the `<keyhole>` table loaded with
+  `pfctl -a keyhole` survive further filter reloads, and a client's TCP 443
+  to a table address is redirected to a listener on `127.0.0.1:8443`.
 - keyhole's code cross-built with `cross` (FreeBSD 12.3 ABI) runs there: the
   unit tests and the live probe/proxy tests pass inside the VM, whose WAN
   meets the real KT DPI.
@@ -44,6 +49,7 @@ Seen on an OPNsense 26.7 test VM (FreeBSD 15.1-RELEASE-p1), 2026-11-17:
 
 Mark accepted once verified on the OPNsense test VM:
 
-- the anchors appear in the generated ruleset and survive a filter reload,
+- ~~the anchors appear in the generated ruleset and survive a filter
+  reload~~ (seen 2026-11-17),
 - `DIOCNATLOOK` returns the original destination for redirected LAN traffic,
 - the BPF filter matches the intended packets and nothing else.
