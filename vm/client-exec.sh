@@ -19,7 +19,8 @@ if grep -aq 'login:' "$log"; then
 fi
 
 tag=$RANDOM$RANDOM
-serial_send "echo BEGIN-$tag; { $1 ; } 2>&1; echo END-$tag=\$?"
+# The quotes keep the echoed command line from matching the markers.
+serial_send "echo BEGIN-''$tag; { $1 ; } 2>&1; echo END-''$tag=\$?"
 serial_expect "END-$tag=" "${2:-60}"
 serial_expect '# ' 5 || true
 tr -d '\r' <"$log" | awk -v b="BEGIN-$tag" -v e="END-$tag=" '
