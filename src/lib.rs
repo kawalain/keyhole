@@ -4,4 +4,5 @@
 
 pub mod classifier;
 pub mod domain;
+pub mod prober;
 pub mod tls;

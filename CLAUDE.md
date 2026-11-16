@@ -11,6 +11,14 @@ the domains that need it. It is the final DNS upstream behind Unbound.
 - Unverified behaviour: `docs/verification-debt.md`. Add to it whatever a
   change could not verify; remove an entry once someone has seen it.
 
+## Commands
+
+- `cargo test`: unit tests; no network, clock or OS access.
+- `cargo test -- --ignored`: live probes against the real network
+  (`tests/live.rs`); they need a Korean ISP connection.
+- `cargo clippy --all-targets -- -D warnings` and `cargo fmt` before
+  committing.
+
 ## Rules
 
 - Scope is Korean ISP censorship on OPNsense only (ADR 0001). The Linux
