@@ -1,8 +1,94 @@
-//! FreeBSD pf integration (ADR 0007): recovering a redirected connection's
-//! original destination.
+//! FreeBSD pf integration (ADR 0007): the `keyhole` anchor's rules and
+//! table, and recovering a redirected connection's original destination.
+
+use std::io::{self, Write};
+use std::net::{IpAddr, SocketAddr};
+use std::process::{Command, Stdio};
+
+use crate::engine::Table;
 
 #[cfg(target_os = "freebsd")]
 pub use freebsd::NatLook;
+
+const ANCHOR: &str = "keyhole";
+
+/// The rules keyhole loads into its anchor: connections from the LAN to
+/// table addresses on TCP 443 go to the proxy, and QUIC to them is refused
+/// so clients fall back to TCP (ADR 0003).
+pub fn anchor_rules(lan: &str, proxy: SocketAddr) -> io::Result<String> {
+    let valid = !lan.is_empty()
+        && lan.len() < 16
+        && lan
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'.');
+    if !valid || !proxy.is_ipv4() {
+        return Err(io::ErrorKind::InvalidInput.into());
+    }
+    Ok(format!(
+        "table <keyhole> persist\n\
+         rdr pass on {lan} inet proto tcp from any to <keyhole> port 443 -> {} port {}\n\
+         block return in quick on {lan} inet proto udp from any to <keyhole> port 443\n",
+        proxy.ip(),
+        proxy.port()
+    ))
+}
+
+/// The `keyhole` anchor, loaded through `pfctl`. OPNsense only evaluates
+/// it with `opnsense/keyhole.inc` installed.
+pub struct PfAnchor;
+
+impl PfAnchor {
+    /// Loads the anchor rules and empties the table.
+    pub fn install(lan: &str, proxy: SocketAddr) -> io::Result<Self> {
+        pfctl(&["-a", ANCHOR, "-f", "-"], Some(&anchor_rules(lan, proxy)?))?;
+        pfctl(&["-a", ANCHOR, "-t", ANCHOR, "-T", "flush"], None)?;
+        Ok(Self)
+    }
+}
+
+impl Table for PfAnchor {
+    fn add(&mut self, addrs: &[IpAddr]) -> io::Result<()> {
+        table_op("add", addrs)
+    }
+
+    fn remove(&mut self, addrs: &[IpAddr]) -> io::Result<()> {
+        table_op("delete", addrs)
+    }
+}
+
+fn table_op(op: &str, addrs: &[IpAddr]) -> io::Result<()> {
+    let addrs: Vec<String> = addrs.iter().map(IpAddr::to_string).collect();
+    let mut args = vec!["-a", ANCHOR, "-t", ANCHOR, "-T", op];
+    args.extend(addrs.iter().map(String::as_str));
+    pfctl(&args, None)
+}
+
+fn pfctl(args: &[&str], stdin: Option<&str>) -> io::Result<()> {
+    let mut child = Command::new("/sbin/pfctl")
+        .args(args)
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    if let (Some(text), Some(mut pipe)) = (stdin, child.stdin.take()) {
+        pipe.write_all(text.as_bytes())?;
+    }
+    let out = child.wait_with_output()?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        let err = String::from_utf8_lossy(&out.stderr);
+        Err(io::Error::other(format!(
+            "pfctl {}: {}",
+            args.join(" "),
+            err.trim()
+        )))
+    }
+}
 
 /// `struct pf_addr` from `netpfil/pf/pf.h`: 16 bytes, aligned like the
 /// `u_int32_t addr32[4]` member of its union.
@@ -111,6 +197,26 @@ mod freebsd {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn anchor_rules_redirect_tls_and_refuse_quic_on_the_lan() {
+        let rules = anchor_rules("vtnet0", "127.0.0.1:8443".parse().unwrap()).unwrap();
+        assert_eq!(
+            rules,
+            "table <keyhole> persist\n\
+             rdr pass on vtnet0 inet proto tcp from any to <keyhole> port 443 -> 127.0.0.1 port 8443\n\
+             block return in quick on vtnet0 inet proto udp from any to <keyhole> port 443\n"
+        );
+    }
+
+    #[test]
+    fn anchor_rules_reject_unsafe_interface_names() {
+        let proxy = "127.0.0.1:8443".parse().unwrap();
+        for bad in ["", "vtnet0 all", "em0\npass", "a/b", "abcdefghijklmnop"] {
+            assert!(anchor_rules(bad, proxy).is_err(), "{bad:?}");
+        }
+        assert!(anchor_rules("igc0_vlan10", proxy).is_ok());
+    }
 
     #[test]
     fn natlook_layout_matches_freebsd() {
