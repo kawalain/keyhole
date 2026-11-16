@@ -6,9 +6,10 @@ rust-version = "1.100"
 description = "Detects Korean ISP censorship on an OPNsense router and bypasses it only where needed"
 publish = false
 
-[dependencies]
-
 [profile.release]
 lto = true
 codegen-units = 1
 strip = true
+
+[target.'cfg(target_os = "freebsd")'.dependencies]
+libc = "0.2.191"

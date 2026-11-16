@@ -37,6 +37,11 @@ the real ISP DPI applies; its LAN is a private link to the client VM.
 3. `vm/ssh.sh [command]` logs in as root; the root shell is csh, so pipe
    scripts to `vm/ssh.sh sh -s`.
 4. `vm/client.sh` starts the LAN client.
+5. `vm/client-exec.sh 'command'` runs a command on the client over its
+   serial console.
+6. `tests/vm.rs` holds FreeBSD-only checks run inside the router VM: copy
+   the cross-built test executable over and run it with `--ignored` while
+   the client connects.
 
 These VMs are test fixtures, not the user's router: changing them needs no
 separate request.

@@ -23,6 +23,9 @@ Seen on an OPNsense 26.7 test VM (FreeBSD 15.1-RELEASE-p1), 2026-11-17:
   on translation anchors). Rules and the `<keyhole>` table loaded with
   `pfctl -a keyhole` survive further filter reloads, and a client's TCP 443
   to a table address is redirected to a listener on `127.0.0.1:8443`.
+- `DIOCNATLOOK` with the squid-style query (client to redirect target,
+  `PF_OUT`) returns the original destination of a redirected client
+  connection (`pf_ioctl.c:2984` in `releng/15.1` for the semantics).
 - keyhole's code cross-built with `cross` (FreeBSD 12.3 ABI) runs there: the
   unit tests and the live probe/proxy tests pass inside the VM, whose WAN
   meets the real KT DPI.
@@ -51,5 +54,6 @@ Mark accepted once verified on the OPNsense test VM:
 
 - ~~the anchors appear in the generated ruleset and survive a filter
   reload~~ (seen 2026-11-17),
-- `DIOCNATLOOK` returns the original destination for redirected LAN traffic,
+- ~~`DIOCNATLOOK` returns the original destination for redirected LAN
+  traffic~~ (seen 2026-11-17, `tests/vm.rs`),
 - the BPF filter matches the intended packets and nothing else.
