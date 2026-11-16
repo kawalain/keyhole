@@ -1,7 +1,7 @@
 <?php
 
 /*
- * keyhole: OPNsense hooks. Registers the pf anchors keyhole loads its own
+ * keyhole: OPNsense hooks. Registers the pf anchor keyhole loads its own
  * rules into (ADR 0007) and lists the service, both only while keyhole is
  * enabled.
  */
@@ -17,9 +17,9 @@ function keyhole_firewall(\OPNsense\Firewall\Plugin $fw)
     if (!keyhole_enabled()) {
         return;
     }
+    // keyhole only redirects (ADR 0014), so a translation anchor is enough.
     // Translation rules are first-match already; pf rejects "quick" on them.
     $fw->registerAnchor('keyhole', 'rdr', 0, 'head');
-    $fw->registerAnchor('keyhole', 'fw', 0, 'head', true);
 }
 
 function keyhole_services()

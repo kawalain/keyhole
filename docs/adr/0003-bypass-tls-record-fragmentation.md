@@ -1,6 +1,6 @@
 # 0003. Bypass: TLS record fragmentation in a transparent proxy
 
-- Status: accepted for TLS (measured); plain HTTP superseded by [0011](0011-http-decoy-request.md)
+- Status: accepted for TLS (measured); plain HTTP superseded by [0011](0011-http-decoy-request.md); the QUIC rule superseded by [0014](0014-leave-quic-alone.md)
 - Date: 2026-11-17
 
 ## Context

@@ -30,3 +30,6 @@ still needs a real router, a real ISP path or a real service.
   followed on the real router. A duplicate catch-all forward was seen to be
   ignored (not fatal) in the test VM, but which one wins when Query
   Forwarding holds the AdGuard Home entry was not checked.
+- **QUIC is not inspected** ([0014](adr/0014-leave-quic-alone.md)): seen
+  on one KT path only. Needs HTTP/3 to a blocked name checked from the real
+  router and, if possible, other ISPs.

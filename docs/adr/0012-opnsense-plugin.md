@@ -1,6 +1,6 @@
 # 0012. OPNsense plugin: settings page, rc.d service, generated includes
 
-- Status: accepted (seen on the OPNsense test VM)
+- Status: accepted (seen on the OPNsense test VM); the filter anchor superseded by [0014](0014-leave-quic-alone.md)
 - Date: 2026-11-17
 
 ## Context

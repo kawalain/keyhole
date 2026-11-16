@@ -1,6 +1,6 @@
 # 0007. Interception on FreeBSD: BPF observation, pf anchor and rdr
 
-- Status: accepted (measured on the OPNsense test VM)
+- Status: accepted (measured on the OPNsense test VM); the filter anchor and QUIC rule superseded by [0014](0014-leave-quic-alone.md)
 - Date: 2026-11-17
 
 ## Context
