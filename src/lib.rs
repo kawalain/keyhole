@@ -6,6 +6,7 @@ pub mod bpf;
 pub mod classifier;
 pub mod dns;
 pub mod domain;
+pub mod engine;
 pub mod entropy;
 pub mod observer;
 pub mod pf;
