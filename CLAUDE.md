@@ -1,8 +1,9 @@
 # keyhole
 
 keyhole runs on an OPNsense router, detects Korean ISP censorship (SNI
-resets, HTTP block-page redirects, DNS tampering) and applies a bypass only to
-the domains that need it. It is the final DNS upstream behind Unbound.
+resets, HTTP block-page redirects) and applies a bypass only to the domains
+that need it. It is the final DNS upstream behind Unbound and forwards to the
+ISP resolver.
 
 ## Read first
 
@@ -23,9 +24,9 @@ the domains that need it. It is the final DNS upstream behind Unbound.
 
 - Scope is Korean ISP censorship on OPNsense only (ADR 0001). The Linux
   adapters exist for development, not deployment.
-- Never route all DNS queries over an encrypted resolver. The ISP resolver is
-  the default; DoT is only for cross-checks and `DnsBlocked` domains
-  (ADR 0005).
+- Never route all DNS queries over an encrypted resolver. DNS goes to the ISP
+  resolver only; an encrypted resolver comes back only through a new ADR once
+  tampering is observed (ADR 0009).
 - Resident memory and idle CPU come first. A feature with a measurable cost
   needs numbers before it lands.
 - Blocking verdicts come from active probes, never from passive evidence alone

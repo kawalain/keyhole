@@ -1,6 +1,6 @@
 # 0005. DNS upstream policy: ISP resolver first, encrypted only when blocked
 
-- Status: accepted (policy); proposed (detection heuristic)
+- Status: superseded by [0009](0009-no-encrypted-resolver.md)
 - Date: 2026-11-17
 
 ## Context
