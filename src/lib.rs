@@ -8,4 +8,5 @@ pub mod domain;
 pub mod entropy;
 pub mod prober;
 pub mod proxy;
+pub mod resolver;
 pub mod tls;

@@ -62,3 +62,37 @@ fn unblocked_domain_is_not_blocked() {
         Verdict::NotBlocked
     );
 }
+
+#[test]
+#[ignore = "needs a Korean ISP connection"]
+fn forwarder_relays_to_the_isp_resolver_and_reports_addresses() {
+    use std::net::UdpSocket;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let server = socket.local_addr().unwrap();
+    let (tx, rx) = mpsc::channel();
+    let config = keyhole::resolver::Config::new("168.126.63.1:53".parse().unwrap());
+    std::thread::spawn(move || {
+        keyhole::resolver::serve_udp(socket, config, move |a| {
+            let _ = tx.send(a.clone());
+        })
+    });
+
+    let mut query = vec![0xab, 0xcd, 0x01, 0x00, 0, 1, 0, 0, 0, 0, 0, 0];
+    query.extend_from_slice(b"\x09womenhelp\x03org\x00\x00\x01\x00\x01");
+    let client = UdpSocket::bind("127.0.0.1:0").unwrap();
+    client
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
+    client.send_to(&query, server).unwrap();
+    let mut buf = [0; 512];
+    let n = client.recv(&mut buf).unwrap();
+    assert_eq!(&buf[..2], &[0xab, 0xcd]);
+
+    let answer = rx.try_recv().expect("hook ran before the reply");
+    assert_eq!(answer.domain, Domain::parse("womenhelp.org"));
+    assert_eq!(answer.addrs, [resolve("womenhelp.org")]);
+    assert!(n > query.len());
+}
