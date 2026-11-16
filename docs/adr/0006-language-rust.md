@@ -1,6 +1,6 @@
 # 0006. Implementation language: Rust
 
-- Status: proposed
+- Status: accepted (measured)
 - Date: 2026-11-17
 
 ## Context
@@ -27,3 +27,16 @@ scripted browsing load:
 - release binary size.
 
 Record the numbers here.
+
+## Measurements
+
+OPNsense 26.7 test VM (FreeBSD 15.1, 2 vCPU under KVM), keyhole release
+build cross-compiled with `cross` 0.2.5, 2026-11-17:
+
+| Condition | Resident memory | CPU time | Threads |
+|---|---|---|---|
+| Idle for 60 s after start | 4584 KiB | 0 ms in those 60 s (10 ms since start, including one probe) | 6 |
+| After 300 DNS queries and 30 proxied HTTPS fetches | 4664 KiB | 55 ms in total | 6 |
+
+Release binary: 529,816 bytes (stripped, LTO). Dependencies: `libc` on
+FreeBSD only.

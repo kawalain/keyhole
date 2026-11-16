@@ -14,5 +14,9 @@ still needs a real router, a real ISP path or a real service.
   the test VM's WAN is QEMU user-mode NAT, which terminates TCP itself. pf,
   BPF and the bypass were seen working there, but not on a router whose WAN
   faces the ISP directly. Needs the real router.
-- **Resource budget** ([0006](adr/0006-language-rust.md)): no numbers yet.
-  Needs a prototype measured on OPNsense.
+- **Resource budget on real hardware** ([0006](adr/0006-language-rust.md)):
+  measured only in the KVM test VM with light load. Needs numbers from the
+  real router under a household's normal browsing.
+- **Reaction time**: in the test VM a block was detected, probed and
+  bypassed about 1.1 s after the first reset; a connection started in that
+  second was still reset. Not measured on the real router.
