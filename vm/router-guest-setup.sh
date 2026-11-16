@@ -17,6 +17,12 @@ $config = Config::getInstance();
 $c = $config->object();
 $c->system->ssh->enabled = 'enabled';
 $c->system->ssh->permitrootlogin = '1';
+// OPNsense rewrites authorized_keys from the user record at boot.
+foreach ($c->system->user as $user) {
+    if ((string)$user->name === 'root') {
+        $user->authorizedkeys = base64_encode('@PUBKEY@' . "\n");
+    }
+}
 // QEMU's NAT presents the host as 10.0.2.2, a private address.
 unset($c->interfaces->wan->blockpriv);
 unset($c->interfaces->wan->blockbogons);

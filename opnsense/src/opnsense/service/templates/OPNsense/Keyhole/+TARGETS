@@ -1,0 +1,2 @@
+rc.conf.d:/etc/rc.conf.d/keyhole
+unbound.conf:/usr/local/etc/unbound.opnsense.d/keyhole.conf

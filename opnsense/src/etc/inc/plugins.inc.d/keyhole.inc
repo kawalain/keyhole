@@ -1,14 +1,41 @@
 <?php
 
 /*
- * keyhole: registers the pf anchors keyhole loads its own rules into
- * (ADR 0007). Installed as /usr/local/etc/inc/plugins.inc.d/keyhole.inc;
- * OPNsense calls keyhole_firewall() whenever it generates the ruleset.
+ * keyhole: OPNsense hooks. Registers the pf anchors keyhole loads its own
+ * rules into (ADR 0007) and lists the service, both only while keyhole is
+ * enabled.
  */
+
+function keyhole_enabled()
+{
+    $mdl = new \OPNsense\Keyhole\Keyhole();
+    return !$mdl->general->enabled->isEmpty();
+}
 
 function keyhole_firewall(\OPNsense\Firewall\Plugin $fw)
 {
+    if (!keyhole_enabled()) {
+        return;
+    }
     // Translation rules are first-match already; pf rejects "quick" on them.
     $fw->registerAnchor('keyhole', 'rdr', 0, 'head');
     $fw->registerAnchor('keyhole', 'fw', 0, 'head', true);
+}
+
+function keyhole_services()
+{
+    $services = [];
+    if (keyhole_enabled()) {
+        $services[] = [
+            'description' => gettext('keyhole censorship bypass'),
+            'configd' => [
+                'start' => ['keyhole start'],
+                'restart' => ['keyhole restart'],
+                'stop' => ['keyhole stop'],
+            ],
+            'name' => 'keyhole',
+            'pidfile' => '/var/run/keyhole.pid',
+        ];
+    }
+    return $services;
 }

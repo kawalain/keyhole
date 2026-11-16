@@ -1,0 +1,5 @@
+<menu>
+    <Services>
+        <Keyhole VisibleName="keyhole" cssClass="fa fa-key fa-fw" url="/ui/keyhole/"/>
+    </Services>
+</menu>

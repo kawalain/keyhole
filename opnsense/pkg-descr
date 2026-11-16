@@ -1,0 +1,7 @@
+keyhole watches a LAN for the resets and block pages Korean ISPs use to
+censor sites, confirms each suspected domain with active probes, and
+bypasses censorship for the confirmed domains only. It also serves as the
+DNS forwarder behind Unbound, relaying queries to the configured upstream.
+
+The plugin provides the settings page, service control and firewall
+anchors; the keyhole daemon itself is installed at /usr/local/sbin/keyhole.

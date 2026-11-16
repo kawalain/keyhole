@@ -1,0 +1,9 @@
+<acl>
+    <page-services-keyhole>
+        <name>Services: keyhole</name>
+        <patterns>
+            <pattern>ui/keyhole/*</pattern>
+            <pattern>api/keyhole/*</pattern>
+        </patterns>
+    </page-services-keyhole>
+</acl>

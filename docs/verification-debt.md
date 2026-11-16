@@ -20,3 +20,6 @@ still needs a real router, a real ISP path or a real service.
 - **Reaction time**: in the test VM a block was detected, probed and
   bypassed about 1.1 s after the first reset; a connection started in that
   second was still reset. Not measured on the real router.
+- **Plugin package** ([0012](adr/0012-opnsense-plugin.md)): the plugin was
+  only installed by copying files. Needs a package build in the
+  `opnsense/plugins` tree and an install on the real router.

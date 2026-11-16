@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# PROVIDE: keyhole
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+#
+# keyhole_enable (bool):    Set to YES to run keyhole.
+# keyhole_options (str):    Arguments for keyhole (--lan, --upstream, ...).
+#
+# OPNsense writes both to /etc/rc.conf.d/keyhole from its settings page.
+
+. /etc/rc.subr
+
+name="keyhole"
+rcvar="keyhole_enable"
+
+load_rc_config $name
+
+: ${keyhole_enable:="NO"}
+: ${keyhole_options:=""}
+
+pidfile="/var/run/${name}.pid"
+procname="/usr/local/sbin/keyhole"
+command="/usr/sbin/daemon"
+# daemon(8) detaches keyhole, records its pid and sends its stderr to syslog.
+command_args="-f -S -T ${name} -p ${pidfile} ${procname} ${keyhole_options}"
+stop_postcmd="keyhole_poststop"
+
+keyhole_poststop()
+{
+	# Without the daemon, redirected connections would have nowhere to go.
+	/sbin/pfctl -a keyhole -F all >/dev/null 2>&1
+	rm -f "${pidfile}"
+}
+
+run_rc_command "$1"

@@ -39,11 +39,10 @@ the real ISP DPI applies; its LAN is a private link to the client VM.
 4. `vm/client.sh` starts the LAN client.
 5. `vm/client-exec.sh 'command'` runs a command on the client over its
    serial console.
-6. End to end: copy the release binary with `vm/push.sh`, start it with
-   `daemon -f -o /tmp/keyhole.log /usr/local/sbin/keyhole --lan vtnet0
-   --upstream 168.126.63.1:53`, install `opnsense/keyhole.inc` and
-   `opnsense/unbound-keyhole.conf`, restart Unbound, then curl a blocked
-   site from the client twice.
+6. End to end: `vm/install-plugin.sh` copies the release binary and the
+   plugin (`opnsense/src`) into the router; enable keyhole under
+   Services > keyhole (GUI through `ssh -L 9443:127.0.0.1:443`, login
+   root/opnsense), then curl a blocked site from the client twice.
 7. `tests/vm.rs` holds FreeBSD-only checks run inside the router VM: copy
    the cross-built test executable over and run it with `--ignored` while
    the client connects.

@@ -1,0 +1,20 @@
+<form>
+    <field>
+        <id>keyhole.general.enabled</id>
+        <label>Enable</label>
+        <type>checkbox</type>
+        <help>Detect censored domains and bypass censorship for them only. While enabled, Unbound forwards every query to keyhole.</help>
+    </field>
+    <field>
+        <id>keyhole.general.interface</id>
+        <label>LAN interface</label>
+        <type>dropdown</type>
+        <help>The interface whose clients keyhole watches and redirects.</help>
+    </field>
+    <field>
+        <id>keyhole.general.upstream</id>
+        <label>Upstream DNS server</label>
+        <type>text</type>
+        <help>The DNS server keyhole forwards every query to, usually your ISP's resolver (for example 168.126.63.1 for KT). An IPv4 address, optionally with :port; port 53 is used otherwise.</help>
+    </field>
+</form>
