@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.100"
 description = "Detects Korean ISP censorship on an OPNsense router and bypasses it only where needed"
+license = "MIT"
 publish = false
 
 [profile.release]
