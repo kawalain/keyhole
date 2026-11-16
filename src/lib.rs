@@ -2,4 +2,5 @@
 //!
 //! See `docs/adr/` for the architecture.
 
+pub mod classifier;
 pub mod domain;
