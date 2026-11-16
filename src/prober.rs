@@ -74,19 +74,10 @@ impl<D: Dialer> Prober<D> {
     }
 }
 
-/// Bytes for ClientHello randoms and key shares. They only need to look
-/// random to a censor, not to be secret.
+/// Bytes for ClientHello randoms and key shares.
 fn entropy() -> [u8; 96] {
     let mut buf = [0; 96];
-    if std::fs::File::open("/dev/urandom")
-        .and_then(|mut f| f.read_exact(&mut buf))
-        .is_err()
-    {
-        use std::hash::{BuildHasher, RandomState};
-        for (i, chunk) in buf.chunks_mut(8).enumerate() {
-            chunk.copy_from_slice(&RandomState::new().hash_one(i).to_ne_bytes());
-        }
-    }
+    crate::entropy::fill(&mut buf);
     buf
 }
 
