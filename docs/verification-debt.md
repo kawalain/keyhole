@@ -23,3 +23,11 @@ still needs a real router, a real ISP path or a real service.
 - **Plugin package** ([0012](adr/0012-opnsense-plugin.md)): the plugin was
   only installed by copying files. Needs a package build in the
   `opnsense/plugins` tree and an install on the real router.
+- **Scheduled blocklist updates** ([0013](adr/0013-filtering-with-unbound-dnsbl.md)):
+  the blocklist was applied by hand in the test VM; a cron job running
+  "Update Unbound DNSBLs" was not seen to run. Needs a scheduled run checked
+  on the real router.
+- **Migration from AdGuard Home** (`docs/adguard-home-migration.md`): not
+  followed on the real router. A duplicate catch-all forward was seen to be
+  ignored (not fatal) in the test VM, but which one wins when Query
+  Forwarding holds the AdGuard Home entry was not checked.

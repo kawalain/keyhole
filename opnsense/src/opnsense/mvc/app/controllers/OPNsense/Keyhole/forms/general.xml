@@ -3,7 +3,7 @@
         <id>keyhole.general.enabled</id>
         <label>Enable</label>
         <type>checkbox</type>
-        <help>Detect censored domains and bypass censorship for them only. While enabled, Unbound forwards every query to keyhole.</help>
+        <help>Detect censored domains and bypass censorship for them only. While enabled, Unbound forwards every query to keyhole. Ad and tracker blocking is set up under Services: Unbound DNS: Blocklist; remove any other forwarding of all domains under Unbound DNS: Query Forwarding, or Unbound may silently skip keyhole.</help>
     </field>
     <field>
         <id>keyhole.general.interface</id>

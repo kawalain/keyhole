@@ -1,6 +1,6 @@
 # 0004. keyhole is the final DNS upstream behind Unbound
 
-- Status: accepted
+- Status: accepted; the ad-blocking consequence is superseded by [0013](0013-filtering-with-unbound-dnsbl.md)
 - Date: 2026-11-17
 
 ## Context

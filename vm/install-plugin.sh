@@ -24,5 +24,7 @@ chmod 0755 /usr/local/etc/rc.d/keyhole
 rm -f /tmp/keyhole.new /tmp/keyhole-plugin.tgz /tmp/opnsense_menu_cache.xml /tmp/opnsense_acl_cache.json
 service configd restart >/dev/null
 configctl template reload OPNsense/Keyhole
+# Start again if the settings page has keyhole enabled.
+/usr/local/etc/rc.d/keyhole start >/dev/null 2>&1 || true
 echo installed
 EOF
