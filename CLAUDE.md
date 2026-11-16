@@ -19,6 +19,27 @@ ISP resolver.
   (`tests/live.rs`); they need a Korean ISP connection and `curl`.
 - `cargo clippy --all-targets -- -D warnings` and `cargo fmt` before
   committing.
+- FreeBSD build: `CROSS_CONTAINER_ENGINE=podman cross build --release
+  --target x86_64-unknown-freebsd` (`cross test --no-run` puts test
+  executables under `target/x86_64-unknown-freebsd/release/build/`).
+
+## Test VMs
+
+`vm/` runs a disposable OPNsense router VM and an Alpine client VM with QEMU,
+without root. Images and disks live in `~/.cache/keyhole-vm/`, never in the
+repository. The router's WAN goes out through the host's own connection, so
+the real ISP DPI applies; its LAN is a private link to the client VM.
+
+1. `vm/fetch.sh` downloads and verifies the images (delete
+   `opnsense.qcow2` to reset the router).
+2. `vm/router.sh` (foreground; run it in the background), then
+   `vm/setup-router.sh` once per fresh disk to enable key-based SSH.
+3. `vm/ssh.sh [command]` logs in as root; the root shell is csh, so pipe
+   scripts to `vm/ssh.sh sh -s`.
+4. `vm/client.sh` starts the LAN client.
+
+These VMs are test fixtures, not the user's router: changing them needs no
+separate request.
 
 ## Rules
 
