@@ -56,8 +56,13 @@ where
         let spawned = thread::Builder::new()
             .stack_size(THREAD_STACK)
             .spawn(move || {
-                if let Ok(dst) = original_dst(&client) {
-                    let _ = handle(client, dst, &config);
+                match original_dst(&client) {
+                    Ok(dst) => {
+                        if let Err(e) = handle(client, dst, &config) {
+                            crate::log!("proxy: {dst}: {e}");
+                        }
+                    }
+                    Err(e) => crate::log!("proxy: no original destination: {e}"),
                 }
                 slot.fetch_sub(1, Ordering::Relaxed);
             });

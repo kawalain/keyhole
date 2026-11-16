@@ -89,9 +89,9 @@ impl<T: Table> Engine<T> {
     pub fn answer(&mut self, answer: &Answer, now: Instant) {
         let Some(domain) = &answer.domain else { return };
         if answer.addrs.contains(&BLOCK_PAGE) {
-            eprintln!("keyhole: dns: {domain} resolved to the block page (DNS tampering)");
+            crate::log!("dns: {domain} resolved to the block page (DNS tampering)");
         } else if answer.rcode == RCODE_NXDOMAIN && self.names.iter().any(|n| &n.domain == domain) {
-            eprintln!("keyhole: dns: {domain} became NXDOMAIN after resolving before");
+            crate::log!("dns: {domain} became NXDOMAIN after resolving before");
         }
         let expires = now + Duration::from_secs(answer.ttl.unwrap_or(0).into()) + self.config.grace;
         for &addr in &answer.addrs {
@@ -178,7 +178,7 @@ impl<T: Table> Engine<T> {
                     probes.push(Probe { domain, addr });
                 }
                 Action::Apply { domain, strategy } => {
-                    eprintln!("keyhole: bypass {domain} with {strategy:?}");
+                    crate::log!("bypass {domain} with {strategy:?}");
                     let known: Vec<_> = self
                         .names
                         .iter()
@@ -190,7 +190,7 @@ impl<T: Table> Engine<T> {
                     }
                 }
                 Action::Lift { domain, strategy } => {
-                    eprintln!("keyhole: lift {strategy:?} from {domain}");
+                    crate::log!("lift {strategy:?} from {domain}");
                     let addrs: Vec<IpAddr> = self
                         .entries
                         .iter()
@@ -266,7 +266,7 @@ impl<T: Table> Engine<T> {
 
 fn report(result: io::Result<()>) {
     if let Err(e) = result {
-        eprintln!("keyhole: table update failed: {e}");
+        crate::log!("table update failed: {e}");
     }
 }
 

@@ -8,6 +8,7 @@ pub mod dns;
 pub mod domain;
 pub mod engine;
 pub mod entropy;
+pub mod log;
 pub mod observer;
 pub mod pf;
 pub mod prober;
